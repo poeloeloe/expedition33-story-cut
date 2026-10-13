@@ -65,7 +65,7 @@
   </main>
   <aside>
     <div class="modes" role="group" aria-label="Length">
-      <button data-mode="short" aria-pressed="true">Short · ~32 min</button>
+      <button data-mode="short" aria-pressed="true">Short · ~33 min</button>
       <button data-mode="full" aria-pressed="false">Full · ~2h 10m</button>
     </div>
     <h2>Scenes</h2>
@@ -77,20 +77,19 @@
 <script>
 const VIDEO = "FU7UMIiBPd4";
 // [start minute, end minute, label]; everything between these ranges is gameplay talk and gets skipped
+// Short cut in seconds, each boundary snapped to the start or end of a sentence in the transcript
 const SHORT = [
-  [22, 23, "The Gommage"],
-  [27, 29, "The expedition lands"],
-  [91, 96, "The white-haired man; Verso"],
-  [103, 104, "When one falls"],
-  [122, 123, "Renoir"],
-  [127, 129, "Alicia and the Axons"],
-  [147, 149, "The Monolith"],
-  [152, 155, "Renoir and the Paintress"],
-  [157, 160, "Homecoming, and waking up as Alicia"],
-  [165, 169, "The family's story"],
-  [175, 178, "Maelle's choice"],
-  [195, 198, "The final confrontation"],
-  [201, 203, "The endings"],
+  [1320, 1440, "The Gommage"],
+  [1620, 1740, "The expedition lands"],
+  [5439, 5760, "Gustave, Renoir and Verso"],
+  [7316, 7422, "Renoir in Old Lumière"],
+  [7619, 7743, "Alicia"],
+  [9118, 9302, "Renoir and the Paintress"],
+  [9393, 9601, "Homecoming, then waking up as Alicia"],
+  [9862, 10135, "The family's story"],
+  [10465, 10678, "Maelle's choice"],
+  [11689, 11880, "The final confrontation"],
+  [12055, 12183, "The endings"],
 ];
 const FULL = [
   [15, 29, "Prologue: Lumière, the Gommage, the expedition sets out"],
@@ -125,7 +124,8 @@ let mode = "short", SCENES = [];
 try { mode = localStorage.getItem("e33-mode") || "short"; } catch {}
 const offKey = () => "e33-off-" + mode;
 function load() {
-  SCENES = (mode === "full" ? FULL : SHORT).map(([a, b, label]) => ({ start: a * 60, end: b * 60, label, on: true }));
+  const k = mode === "full" ? 60 : 1;
+  SCENES = (mode === "full" ? FULL : SHORT).map(([a, b, label]) => ({ start: a * k, end: b * k, label, on: true }));
   try { JSON.parse(localStorage.getItem(offKey()) || "[]").forEach(i => SCENES[i] && (SCENES[i].on = false)); } catch {}
   document.querySelectorAll("[data-mode]").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === mode));
 }
