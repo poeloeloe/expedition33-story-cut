@@ -35,6 +35,8 @@
   .bar i.on { background: var(--gold); opacity: .55; }
   .bar b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--fg); }
   aside { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; min-width: 0; }
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
+  .modes button[aria-pressed="true"] { background: var(--gold); color: var(--bg); border-color: var(--gold); }
   aside h2 { font: 600 1.15rem var(--display); margin: 0 0 4px; }
   aside p { color: var(--muted); margin: 0 0 10px; font-size: 13px; }
   ol { list-style: none; margin: 0; padding: 0; max-height: 70vh; overflow-y: auto; }
@@ -62,6 +64,10 @@
     </div>
   </main>
   <aside>
+    <div class="modes" role="group" aria-label="Length">
+      <button data-mode="short" aria-pressed="true">Short · ~32 min</button>
+      <button data-mode="full" aria-pressed="false">Full · ~2h 10m</button>
+    </div>
     <h2>Scenes</h2>
     <p id="total"></p>
     <ol id="list"></ol>
@@ -71,7 +77,22 @@
 <script>
 const VIDEO = "FU7UMIiBPd4";
 // [start minute, end minute, label]; everything between these ranges is gameplay talk and gets skipped
-const SCENES = [
+const SHORT = [
+  [22, 23, "The Gommage"],
+  [27, 29, "The expedition lands"],
+  [91, 96, "The white-haired man; Verso"],
+  [103, 104, "When one falls"],
+  [122, 123, "Renoir"],
+  [127, 129, "Alicia and the Axons"],
+  [147, 149, "The Monolith"],
+  [152, 155, "Renoir and the Paintress"],
+  [157, 160, "Homecoming, and waking up as Alicia"],
+  [165, 169, "The family's story"],
+  [175, 178, "Maelle's choice"],
+  [195, 198, "The final confrontation"],
+  [201, 203, "The endings"],
+];
+const FULL = [
   [15, 29, "Prologue: Lumière, the Gommage, the expedition sets out"],
   [31, 32, "After the beach"],
   [43, 44, "A journal from an earlier expedition"],
@@ -98,10 +119,17 @@ const SCENES = [
   [182, 183, "Alicia's fear of heights"],
   [184, 187, "Guilt and the Axon of Alicia"],
   [188, 205, "The final confrontation and the endings"],
-].map(([a, b, label]) => ({ start: a * 60, end: b * 60, label, on: true }));
+];
 
-try { const saved = JSON.parse(localStorage.getItem("e33-off") || "[]"); saved.forEach(i => SCENES[i] && (SCENES[i].on = false)); } catch {}
-const save = () => { try { localStorage.setItem("e33-off", JSON.stringify(SCENES.flatMap((s, i) => s.on ? [] : [i]))); } catch {} };
+let mode = "short", SCENES = [];
+try { mode = localStorage.getItem("e33-mode") || "short"; } catch {}
+const offKey = () => "e33-off-" + mode;
+function load() {
+  SCENES = (mode === "full" ? FULL : SHORT).map(([a, b, label]) => ({ start: a * 60, end: b * 60, label, on: true }));
+  try { JSON.parse(localStorage.getItem(offKey()) || "[]").forEach(i => SCENES[i] && (SCENES[i].on = false)); } catch {}
+  document.querySelectorAll("[data-mode]").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === mode));
+}
+const save = () => { try { localStorage.setItem(offKey(), JSON.stringify(SCENES.flatMap((s, i) => s.on ? [] : [i]))); } catch {} };
 
 const LEN = 12812;
 const fmt = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
@@ -160,7 +188,11 @@ window.onYouTubeIframeAPIReady = () => {
 $("next").onclick = () => { const n = nextOn(cur); if (n >= 0) go(n); };
 $("prev").onclick = () => { for (let i = cur - 1; i >= 0; i--) if (SCENES[i].on) return go(i); go(SCENES.findIndex(s => s.on)); };
 $("all").onclick = () => { SCENES.forEach(s => s.on = true); save(); render(); };
-render();
+document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => {
+  mode = b.dataset.mode; try { localStorage.setItem("e33-mode", mode); } catch {}
+  cur = -1; load(); render(); const f = SCENES.findIndex(s => s.on); if (player && player.getPlayerState && player.getPlayerState() === 1) go(f);
+});
+load(); render();
 </script>
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>
