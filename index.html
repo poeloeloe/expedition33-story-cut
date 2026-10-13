@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expedition 33 Story Cut</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Karla:wght@400;600&display=swap">
+<style>
+  /* Layout: player on the left, scene list on the right; stacks on narrow screens */
+  :root {
+    --bg: #14121a; --panel: #1d1a25; --line: #2e2a3a;
+    --fg: #ece6da; --muted: #9a93a8; --gold: #d8b46a; --off: #5c566a;
+    --display: "Cormorant Garamond", Georgia, serif;
+    --body: "Karla", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px; display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) 360px; }
+  @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+  h1 { font: 600 2rem/1.1 var(--display); margin: 0 0 4px; letter-spacing: .01em; }
+  h1 span { color: var(--gold); }
+  .sub { color: var(--muted); margin: 0 0 16px; }
+  .player { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; border-radius: 6px; overflow: hidden; }
+  .player > div, .player iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .now { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: baseline; margin-top: 14px; }
+  .now .label { font: 600 1.3rem var(--display); color: var(--gold); }
+  .now .meta { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  button { font: 600 13px var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 7px 12px; cursor: pointer; }
+  button:hover { border-color: var(--gold); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; margin-top: 14px; position: relative; overflow: hidden; }
+  .bar i { position: absolute; top: 0; bottom: 0; background: var(--off); }
+  .bar i.on { background: var(--gold); opacity: .55; }
+  .bar b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--fg); }
+  aside { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; min-width: 0; }
+  aside h2 { font: 600 1.15rem var(--display); margin: 0 0 4px; }
+  aside p { color: var(--muted); margin: 0 0 10px; font-size: 13px; }
+  ol { list-style: none; margin: 0; padding: 0; max-height: 70vh; overflow-y: auto; }
+  li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 7px 6px; border-radius: 4px; cursor: pointer; }
+  li:hover { background: var(--line); }
+  li.cur { background: var(--line); box-shadow: inset 2px 0 0 var(--gold); }
+  li.skip .t { color: var(--off); text-decoration: line-through; }
+  li .t { min-width: 0; }
+  li .d { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  input[type=checkbox] { accent-color: var(--gold); width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main>
+    <h1>Expedition 33 <span>Story Cut</span></h1>
+    <p class="sub">Josh Strife Plays' review, playing only the story parts. Gameplay, combat systems and the final verdict are skipped automatically.</p>
+    <div class="player"><div id="yt"></div></div>
+    <div class="bar" id="bar"></div>
+    <div class="now"><span class="label" id="nowLabel">Press play</span><span class="meta" id="nowMeta"></span></div>
+    <div class="controls">
+      <button id="prev">◀ Previous scene</button>
+      <button id="next">Next scene ▶</button>
+      <button id="all">Select all</button>
+    </div>
+  </main>
+  <aside>
+    <h2>Scenes</h2>
+    <p id="total"></p>
+    <ol id="list"></ol>
+  </aside>
+</div>
+
+<script>
+const VIDEO = "FU7UMIiBPd4";
+// [start minute, end minute, label]; everything between these ranges is gameplay talk and gets skipped
+const SCENES = [
+  [15, 29, "Prologue: Lumière, the Gommage, the expedition sets out"],
+  [31, 32, "After the beach"],
+  [43, 44, "A journal from an earlier expedition"],
+  [49, 51, "The Indigo Tree; Gustave and Lune clash"],
+  [52, 54, "Regrouping and pressing on"],
+  [56, 59, "Maelle"],
+  [61, 62, "The Gestrals"],
+  [65, 67, "Gustave and Maelle talk"],
+  [68, 73, "The Gestral village; Sciel turns up"],
+  [75, 77, "Maelle's nightmares and a warning"],
+  [79, 86, "Esquie, François and the Stone Wave Cliffs"],
+  [89, 99, "The white-haired man; Verso"],
+  [103, 104, "When one falls"],
+  [106, 111, "Camp talks on the way to Monoco"],
+  [113, 115, "Monoco joins"],
+  [118, 119, "Separated"],
+  [120, 123, "Old Lumière and Renoir"],
+  [124, 131, "Visions, Alicia and the Axons"],
+  [133, 135, "Masks and the manor"],
+  [136, 140, "The Axons fall"],
+  [145, 149, "Breaking the barrier; the Monolith"],
+  [152, 155, "Renoir and the Paintress"],
+  [157, 181, "Homecoming, then the truth about the family"],
+  [182, 183, "Alicia's fear of heights"],
+  [184, 187, "Guilt and the Axon of Alicia"],
+  [188, 205, "The final confrontation and the endings"],
+].map(([a, b, label]) => ({ start: a * 60, end: b * 60, label, on: true }));
+
+try { const saved = JSON.parse(localStorage.getItem("e33-off") || "[]"); saved.forEach(i => SCENES[i] && (SCENES[i].on = false)); } catch {}
+const save = () => { try { localStorage.setItem("e33-off", JSON.stringify(SCENES.flatMap((s, i) => s.on ? [] : [i]))); } catch {} };
+
+const LEN = 12812;
+const fmt = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
+const $ = id => document.getElementById(id);
+let player, cur = -1;
+
+function render() {
+  const list = $("list"); list.innerHTML = "";
+  SCENES.forEach((s, i) => {
+    const li = document.createElement("li");
+    li.className = (s.on ? "" : "skip") + (i === cur ? " cur" : "");
+    li.innerHTML = `<input type="checkbox" id="sc${i}" aria-label="Include scene" ${s.on ? "checked" : ""}><span class="t"></span><span class="d">${fmt(s.end - s.start)}</span>`;
+    li.querySelector(".t").textContent = s.label;
+    li.querySelector("input").addEventListener("click", e => { e.stopPropagation(); s.on = e.target.checked; save(); render(); });
+    li.addEventListener("click", () => { if (!s.on) { s.on = true; save(); } go(i); });
+    list.appendChild(li);
+  });
+  const tot = SCENES.filter(s => s.on).reduce((a, s) => a + s.end - s.start, 0);
+  $("total").textContent = `${SCENES.filter(s => s.on).length} of ${SCENES.length} scenes · ${fmt(tot)} of story out of ${fmt(LEN)}. Untick a scene to skip it too.`;
+  $("bar").innerHTML = SCENES.map(s => `<i class="${s.on ? "on" : ""}" style="left:${s.start / LEN * 100}%;width:${(s.end - s.start) / LEN * 100}%"></i>`).join("") + `<b id="head" style="left:0"></b>`;
+}
+
+function go(i) {
+  if (!player || i < 0 || i >= SCENES.length) return;
+  cur = i; player.seekTo(SCENES[i].start, true); player.playVideo(); render();
+}
+const nextOn = from => SCENES.findIndex((s, i) => i > from && s.on);
+
+function tick() {
+  if (!player || !player.getCurrentTime) return;
+  const t = player.getCurrentTime();
+  const head = $("head"); if (head) head.style.left = (t / LEN * 100) + "%";
+  if (player.getPlayerState() !== YT.PlayerState.PLAYING) return;
+  const inside = SCENES.findIndex(s => s.on && t >= s.start && t < s.end);
+  if (inside >= 0) {
+    if (inside !== cur) { cur = inside; render(); }
+    const s = SCENES[cur];
+    $("nowLabel").textContent = s.label;
+    $("nowMeta").textContent = `Scene ${cur + 1} of ${SCENES.length} · ${fmt(t - s.start)} / ${fmt(s.end - s.start)}`;
+    return;
+  }
+  // Outside a story scene: jump to the next enabled one, or stop at the end
+  const n = SCENES.findIndex(s => s.on && s.start > t);
+  if (n >= 0) go(n);
+  else { player.pauseVideo(); $("nowLabel").textContent = "The end"; $("nowMeta").textContent = ""; }
+}
+
+window.onYouTubeIframeAPIReady = () => {
+  player = new YT.Player("yt", {
+    videoId: VIDEO,
+    playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+    events: { onReady: () => setInterval(tick, 250) }
+  });
+};
+
+$("next").onclick = () => { const n = nextOn(cur); if (n >= 0) go(n); };
+$("prev").onclick = () => { for (let i = cur - 1; i >= 0; i--) if (SCENES[i].on) return go(i); go(SCENES.findIndex(s => s.on)); };
+$("all").onclick = () => { SCENES.forEach(s => s.on = true); save(); render(); };
+render();
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
